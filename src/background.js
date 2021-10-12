@@ -1,3 +1,5 @@
+// TODO export/import watchlist / clear storage button
+// TODO counter for games on watchlist? counter for results in filtered watchlist?
 const storage_types = {
     /**
      * Stores a list of steam games
@@ -12,9 +14,15 @@ const storage_types = {
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    const {msg} = request;
+    const {msg, arg0} = request;
     if (msg === "getStorageTypes") {
         sendResponse({storage_types});
+        return true;
+    } else if (msg === "getAppDetails") {
+        // arg0 - appID
+        fetch("https://store.steampowered.com/api/appdetails?appids=" + arg0)
+            .then(response => response.text())
+            .then(result => sendResponse({result}));
         return true;
     }
 })
@@ -42,7 +50,7 @@ function onPageLoad_enteredGiveaways() {
     // entered GA page does not provide appID -> cannot add to watchlist from here.
     // instead, check appName and apply highlighting
     chrome.runtime.sendMessage({msg: "getStorageTypes"}, ({storage_types}) => {
-        chrome.storage.sync.get(storage_types.sg_watchlist.name,
+        chrome.storage.local.get(storage_types.sg_watchlist.name,
             /**
              * @param {[{appID: string, appName: string, dateAdded: string}]} sg_watchlist
              */
@@ -64,12 +72,13 @@ function onPageLoad_enteredGiveaways() {
 
                 let giveawayHeaderXpath = "//*[@class='table__row-inner-wrap']";
                 let appNameHeaderXpath = ".//*[@class='table__column__heading']";
+                let appNameRegex = /^(.+?)(?: \([0-9]+ Copies\))?$/i;
                 let giveawayHeaders = document.evaluate(giveawayHeaderXpath, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
                 for (let i = 0; i < giveawayHeaders.snapshotLength; i++) {
                     let giveawayHeader = giveawayHeaders.snapshotItem(i);
                     let appNameElement = document.evaluate(appNameHeaderXpath, giveawayHeader, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                    let appName = appNameElement.singleNodeValue.innerHTML;
-                    console.log("checking for appName: " + appName);
+                    let fullAppName = appNameElement.singleNodeValue.innerHTML;
+                    let appName = appNameRegex.exec(fullAppName)[1];
 
                     // if appID is on watchlist -> highlight
                     if (sg_watchlist.some(entry => entry.appName === appName)) {
@@ -83,10 +92,9 @@ function onPageLoad_enteredGiveaways() {
 function onPageLoad_browseGiveaways() {
     chrome.runtime.sendMessage({msg: "getStorageTypes"}, ({storage_types}) => {
         const watchlistButton_appIdAttribute = "appID";
-        const watchlistButton_appNameAttribute = "appName";
         let addWatchlistButtons = [];
         let deleteWatchlistButtons = [];
-        chrome.storage.sync.get(storage_types.sg_watchlist.name,
+        chrome.storage.local.get(storage_types.sg_watchlist.name,
             /**
              * @param {[{appID: string, appName: string, dateAdded: string}]} sg_watchlist
              */
@@ -115,7 +123,6 @@ function onPageLoad_browseGiveaways() {
                      */
                     let htmlElement = e.target;
                     let appId = htmlElement.getAttribute(watchlistButton_appIdAttribute);
-                    let appName = htmlElement.getAttribute(watchlistButton_appNameAttribute);
                     addWatchlistButtons
                         .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
                         .forEach(button => {
@@ -125,11 +132,19 @@ function onPageLoad_browseGiveaways() {
                     deleteWatchlistButtons
                         .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
                         .forEach(button => button.style.display = "block");
-                    chrome.storage.sync.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                        sg_watchlist = sg_watchlist || [];
                         if (!sg_watchlist.some(entry => entry.appID === appId)) {
-                            sg_watchlist.push({"appID": appId, "appName": appName, "dateAdded": (new Date()).toJSON()});
-                            // noinspection JSIgnoredPromiseFromCall
-                            chrome.storage.sync.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            chrome.runtime.sendMessage({msg: "getAppDetails", arg0: appId}, ({result}) => {
+                                let responseObject = JSON.parse(result);
+                                sg_watchlist.push({
+                                    "appID": appId,
+                                    "appName": responseObject[appId].data.name,
+                                    "dateAdded": (new Date()).toJSON()
+                                });
+                                // noinspection JSIgnoredPromiseFromCall
+                                chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            })
                         }
                     })
                 };
@@ -152,16 +167,17 @@ function onPageLoad_browseGiveaways() {
                     deleteWatchlistButtons
                         .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
                         .forEach(button => button.style.display = "none");
-                    chrome.storage.sync.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                        sg_watchlist = sg_watchlist || [];
                         if (sg_watchlist.some(entry => entry.appID === appId)) {
                             sg_watchlist = sg_watchlist.filter(entry => entry.appID !== appId);
                             // noinspection JSIgnoredPromiseFromCall
-                            chrome.storage.sync.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
                         }
                     })
                 }
 
-                const createWatchlistButton = function (isDelete, appID, appName) {
+                const createWatchlistButton = function (isDelete, appID) {
                     let watchlistButton = document.createElement("img");
                     watchlistButton.style.height = "1.5em";
                     watchlistButton.style.paddingLeft = "5px";
@@ -176,7 +192,6 @@ function onPageLoad_browseGiveaways() {
                     }
                     watchlistButton.style.opacity = "0.6";
                     watchlistButton.setAttribute(watchlistButton_appIdAttribute, appID);
-                    watchlistButton.setAttribute(watchlistButton_appNameAttribute, appName);
                     return watchlistButton;
                 }
 
@@ -188,13 +203,12 @@ function onPageLoad_browseGiveaways() {
                     let giveawayHeader = giveawayHeaders.snapshotItem(i);
                     let searchUrl = document.evaluate(searchUrlXpath, giveawayHeader, null, XPathResult.STRING_TYPE, null);
                     let appID = appIDRegex.exec(searchUrl.stringValue)[1];
-                    let appName = giveawayHeader.firstElementChild.innerHTML;
 
                     // if appID is on watchlist -> highlight, show 'remove from watchlist' button
                     // otherwise -> show 'add to watchlist' button
-                    let addToWatchlistButton = createWatchlistButton(false, appID, appName);
+                    let addToWatchlistButton = createWatchlistButton(false, appID);
                     addWatchlistButtons.push(addToWatchlistButton);
-                    let removeFromWatchlistButton = createWatchlistButton(true, appID, appName);
+                    let removeFromWatchlistButton = createWatchlistButton(true, appID);
                     deleteWatchlistButtons.push(removeFromWatchlistButton);
 
                     if (sg_watchlist.some(entry => entry.appID === appID)) {
@@ -221,10 +235,9 @@ function onPageLoad_giveawayDetails() {
     // adds button: add/remove to/from watchlist
     chrome.runtime.sendMessage({msg: "getStorageTypes"}, ({storage_types}) => {
         let appId;
-        let appName;
         let addWatchlistButton;
         let deleteWatchlistButton;
-        chrome.storage.sync.get(storage_types.sg_watchlist.name,
+        chrome.storage.local.get(storage_types.sg_watchlist.name,
             /**
              * @param {[{appID: string, appName: string, dateAdded: string}]} sg_watchlist
              */
@@ -234,11 +247,19 @@ function onPageLoad_giveawayDetails() {
                 const onWatchlistAddClick = function () {
                     addWatchlistButton.style.display = "none";
                     deleteWatchlistButton.style.display = "block";
-                    chrome.storage.sync.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                        sg_watchlist = sg_watchlist || [];
                         if (!sg_watchlist.some(entry => entry.appID === appId)) {
-                            sg_watchlist.push({"appID": appId, "appName": appName, "dateAdded": (new Date()).toJSON()});
-                            // noinspection JSIgnoredPromiseFromCall
-                            chrome.storage.sync.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            chrome.runtime.sendMessage({msg: "getAppDetails", arg0: appId}, ({result}) => {
+                                let responseObject = JSON.parse(result);
+                                sg_watchlist.push({
+                                    "appID": appId,
+                                    "appName": responseObject[appId].data.name,
+                                    "dateAdded": (new Date()).toJSON()
+                                });
+                                // noinspection JSIgnoredPromiseFromCall
+                                chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            })
                         }
                     })
                 };
@@ -246,11 +267,12 @@ function onPageLoad_giveawayDetails() {
                 const onWatchlistRemoveClick = function () {
                     addWatchlistButton.style.display = "block";
                     deleteWatchlistButton.style.display = "none";
-                    chrome.storage.sync.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                        sg_watchlist = sg_watchlist || [];
                         if (sg_watchlist.some(entry => entry.appID === appId)) {
                             sg_watchlist = sg_watchlist.filter(entry => entry.appID !== appId);
                             // noinspection JSIgnoredPromiseFromCall
-                            chrome.storage.sync.set({[storage_types.sg_watchlist.name]: sg_watchlist})
+                            chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
                         }
                     })
                 }
@@ -279,7 +301,6 @@ function onPageLoad_giveawayDetails() {
                 let giveawayHeader = giveawayHeaderXpathResult.singleNodeValue;
                 let searchUrl = document.evaluate(searchUrlXpath, giveawayHeader, null, XPathResult.STRING_TYPE, null);
                 appId = appIDRegex.exec(searchUrl.stringValue)[1];
-                appName = giveawayHeader.firstElementChild.innerHTML;
 
                 // if appID is on watchlist -> show 'remove from watchlist' button
                 // otherwise -> show 'add to watchlist' button

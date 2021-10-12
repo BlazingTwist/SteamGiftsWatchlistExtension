@@ -71,10 +71,11 @@ const handleAppDeleteButton = function (e) {
     let appId = htmlElement.getAttribute(deleteButton_appIdAttribute);
     watchlist = watchlist.filter(app => app.appID !== appId);
     watchlistActive = watchlistActive.filter(app => app.appID !== appId);
-    chrome.storage.sync.get(storageTypes.sg_watchlist.name, ({sg_watchlist}) => {
+    chrome.storage.local.get(storageTypes.sg_watchlist.name, ({sg_watchlist}) => {
+        sg_watchlist = sg_watchlist || [];
         sg_watchlist = sg_watchlist.filter(app => app.appID !== appId);
         // noinspection JSIgnoredPromiseFromCall
-        chrome.storage.sync.set({[storageTypes.sg_watchlist.name]: sg_watchlist});
+        chrome.storage.local.set({[storageTypes.sg_watchlist.name]: sg_watchlist});
     })
 
     let tableRow = findParentElement(e.target, "tr");
@@ -277,7 +278,7 @@ function sortActiveWatchlist() {
 const main = function () {
     chrome.runtime.sendMessage({msg: "getStorageTypes"}, ({storage_types}) => {
         storageTypes = storage_types;
-        chrome.storage.sync.get(storage_types.sg_watchlist.name,
+        chrome.storage.local.get(storage_types.sg_watchlist.name,
             /**
              * @param {[{appID: string, appName: string, dateAdded: string}]} sg_watchlist
              */
