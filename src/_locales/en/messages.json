@@ -1,0 +1,68 @@
+{
+  "extension_name": {
+    "message": "SteamGifts Watchlist"
+  },
+  "extension_description": {
+    "message": "A Chromium plugin for adding games on SteamGifts to your watchlist"
+  },
+  "html_app_name_header": {
+    "message": "AppName"
+  },
+  "html_app_remove_tooltip": {
+    "message": "Remove from watchlist"
+  },
+  "html_app_filter_placeholder": {
+    "message": "filter by name"
+  },
+  "html_app_id_header": {
+    "message": "AppID"
+  },
+  "html_app_added_header": {
+    "message": "Added"
+  },
+  "html_app_added_sort_asc": {
+    "message": "Sort ascending"
+  },
+  "html_app_added_sort_desc": {
+    "message": "Sort descending"
+  },
+  "html_app_added_time_ago": {
+    "message": ""
+  },
+  "html_app_thumbnail_header": {
+    "message": "Thumbnail"
+  },
+  "text_image_load_failed": {
+    "message": "Image load failed"
+  },
+  "text_time_second_one": {
+    "message": "second"
+  },
+  "text_time_second_many": {
+    "message": "seconds"
+  },
+  "text_time_minute_one": {
+    "message": "minute"
+  },
+  "text_time_minute_many": {
+    "message": "minutes"
+  },
+  "text_time_hour_one": {
+    "message": "hour"
+  },
+  "text_time_hour_many": {
+    "message": "hours"
+  },
+  "text_time_day_one": {
+    "message": "day"
+  },
+  "text_time_day_many": {
+    "message": "days"
+  },
+  "text_time_year_one": {
+    "message": "year"
+  },
+  "text_time_year_many": {
+    "message": "years"
+  }
+}

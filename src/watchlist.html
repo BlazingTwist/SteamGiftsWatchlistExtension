@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>__MSG_extension_name__</title>
+    <link type="text/css" href="css/watchlist.css" rel="stylesheet">
+    <script type="text/javascript" src="js/watchlist.js"></script>
+</head>
+
+<!--
+TODO: provide additional options
+        - add by name / by appID (?)
+        - customize highlighting
+        - limit amount of listed games into pages (?)
+-->
+
+<body>
+    <div style="margin-top: 10px">
+        <table class="styled-table" id="watchlist_apps_table" style="float: top;">
+            <thead>
+            <tr>
+                <th>
+                    <label for="app_name_input">__MSG_html_app_name_header__</label>
+                    <input type="text" id="app_name_input" name="app_name_input" placeholder="__MSG_html_app_filter_placeholder__" size="10">
+                </th>
+                <th>__MSG_html_app_id_header__</th>
+                <th>
+                    <span>__MSG_html_app_added_header__</span>
+                    <div class="tooltip" id="sort_date_ascending_container">
+                        <span class="tooltip-text">__MSG_html_app_added_sort_asc__</span>
+                        <img class="inline-icon" id="sort_date_ascending" src="img/sortAscending.png" alt="asc"/>
+                    </div>
+                    <div class="tooltip hidden" id="sort_date_descending_container">
+                        <span class="tooltip-text">__MSG_html_app_added_sort_desc__</span>
+                        <img class="inline-icon" id="sort_date_descending" src="img/sortDescending.png" alt="desc"/>
+                    </div>
+                </th>
+                <th>__MSG_html_app_thumbnail_header__</th>
+            </tr>
+            </thead>
+
+            <tbody id="watchlist_apps_table_body">
+            <!-- table content will be added through javascript -->
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>
