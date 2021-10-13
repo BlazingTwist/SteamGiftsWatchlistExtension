@@ -13,16 +13,32 @@ const storage_types = {
     }
 }
 
+let appList;
+
+const getAppNameFromAppList = function (appId) {
+    let appIdNumber = Number.parseInt(appId);
+    let app = appList.find(app => app["appid"] === appIdNumber);
+    return app ? app.name : null;
+}
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     const {msg, arg0} = request;
     if (msg === "getStorageTypes") {
         sendResponse({storage_types});
         return true;
-    } else if (msg === "getAppDetails") {
+    } else if (msg === "getAppName") {
         // arg0 - appID
-        fetch("https://store.steampowered.com/api/appdetails?appids=" + arg0)
-            .then(response => response.text())
-            .then(result => sendResponse({result}));
+        if (appList) {
+            sendResponse({"appName": getAppNameFromAppList(arg0)});
+        } else {
+            fetch("https://api.steampowered.com/ISteamApps/GetAppList/v2/")
+                .then(response => response.text())
+                .then(result => {
+                    // magic faith in the steam api
+                    appList = JSON.parse(result).applist.apps;
+                    sendResponse({"appName": getAppNameFromAppList(arg0)});
+                })
+        }
         return true;
     }
 })
@@ -123,29 +139,34 @@ function onPageLoad_browseGiveaways() {
                      */
                     let htmlElement = e.target;
                     let appId = htmlElement.getAttribute(watchlistButton_appIdAttribute);
-                    addWatchlistButtons
-                        .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
-                        .forEach(button => {
-                            button.style.display = "none";
-                            applyHighlight(button.parentElement, true);
-                        });
-                    deleteWatchlistButtons
-                        .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
-                        .forEach(button => button.style.display = "block");
-                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
-                        sg_watchlist = sg_watchlist || [];
-                        if (!sg_watchlist.some(entry => entry.appID === appId)) {
-                            chrome.runtime.sendMessage({msg: "getAppDetails", arg0: appId}, ({result}) => {
-                                let responseObject = JSON.parse(result);
+                    chrome.runtime.sendMessage({msg: "getAppName", arg0: appId}, ({appName}) => {
+                        if (!appName) {
+                            alert(chrome.i18n.getMessage("alert_steam_api_failed"));
+                            return;
+                        }
+
+                        addWatchlistButtons
+                            .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
+                            .forEach(button => {
+                                button.style.display = "none";
+                                applyHighlight(button.parentElement, true);
+                            });
+                        deleteWatchlistButtons
+                            .filter(button => button.getAttribute(watchlistButton_appIdAttribute) === appId)
+                            .forEach(button => button.style.display = "block");
+
+                        chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                            sg_watchlist = sg_watchlist || [];
+                            if (!sg_watchlist.some(entry => entry.appID === appId)) {
                                 sg_watchlist.push({
                                     "appID": appId,
-                                    "appName": responseObject[appId].data.name,
+                                    "appName": appName,
                                     "dateAdded": (new Date()).toJSON()
                                 });
                                 // noinspection JSIgnoredPromiseFromCall
                                 chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
-                            })
-                        }
+                            }
+                        })
                     })
                 };
 
@@ -245,22 +266,27 @@ function onPageLoad_giveawayDetails() {
                 sg_watchlist = sg_watchlist || [];
 
                 const onWatchlistAddClick = function () {
-                    addWatchlistButton.style.display = "none";
-                    deleteWatchlistButton.style.display = "block";
-                    chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
-                        sg_watchlist = sg_watchlist || [];
-                        if (!sg_watchlist.some(entry => entry.appID === appId)) {
-                            chrome.runtime.sendMessage({msg: "getAppDetails", arg0: appId}, ({result}) => {
-                                let responseObject = JSON.parse(result);
+                    chrome.runtime.sendMessage({msg: "getAppName", arg0: appId}, ({appName}) => {
+                        if (!appName) {
+                            alert(chrome.i18n.getMessage("alert_steam_api_failed"));
+                            return;
+                        }
+
+                        addWatchlistButton.style.display = "none";
+                        deleteWatchlistButton.style.display = "block";
+
+                        chrome.storage.local.get(storage_types.sg_watchlist.name, ({sg_watchlist}) => {
+                            sg_watchlist = sg_watchlist || [];
+                            if (!sg_watchlist.some(entry => entry.appID === appId)) {
                                 sg_watchlist.push({
                                     "appID": appId,
-                                    "appName": responseObject[appId].data.name,
+                                    "appName": appName,
                                     "dateAdded": (new Date()).toJSON()
                                 });
                                 // noinspection JSIgnoredPromiseFromCall
                                 chrome.storage.local.set({[storage_types.sg_watchlist.name]: sg_watchlist})
-                            })
-                        }
+                            }
+                        })
                     })
                 };
 

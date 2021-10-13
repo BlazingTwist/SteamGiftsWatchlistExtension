@@ -5,6 +5,9 @@
   "extension_description": {
     "message": "A Chromium plugin for adding games on SteamGifts to your watchlist"
   },
+  "alert_steam_api_failed":  {
+    "message": "Failed to query data from steam api"
+  },
   "html_app_name_header": {
     "message": "AppName"
   },
