@@ -66,6 +66,14 @@ function onPageLoad_enteredGiveaways() {
     // entered GA page does not provide appID -> cannot add to watchlist from here.
     // instead, check appName and apply highlighting
     chrome.runtime.sendMessage({msg: "getStorageTypes"}, ({storage_types}) => {
+        /**
+         * @param {string} a
+         * @param {string} b
+         */
+        function caseInsensitiveEquals(a, b) {
+            return a.localeCompare(b, undefined, {sensitivity: "accent"}) === 0;
+        }
+
         chrome.storage.local.get(storage_types.sg_watchlist.name,
             /**
              * @param {[{appID: string, appName: string, dateAdded: string}]} sg_watchlist
@@ -93,11 +101,11 @@ function onPageLoad_enteredGiveaways() {
                 for (let i = 0; i < giveawayHeaders.snapshotLength; i++) {
                     let giveawayHeader = giveawayHeaders.snapshotItem(i);
                     let appNameElement = document.evaluate(appNameHeaderXpath, giveawayHeader, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                    let fullAppName = appNameElement.singleNodeValue.innerHTML;
+                    let fullAppName = appNameElement.singleNodeValue.innerText;
                     let appName = appNameRegex.exec(fullAppName)[1].trim();
 
                     // if appID is on watchlist -> highlight
-                    if (sg_watchlist.some(entry => entry.appName.trim() === appName)) {
+                    if (sg_watchlist.some(entry => caseInsensitiveEquals(entry.appName.trim(), appName))) {
                         applyHighlight(giveawayHeader, true);
                     }
                 }
