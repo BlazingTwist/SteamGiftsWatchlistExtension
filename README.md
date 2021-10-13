@@ -13,9 +13,12 @@ Ideally name comparison could be avoided altogether, but SG does not provide the
 
 |Steam API|Steamgifts|
 |:-------:|:--------:|
+|'Chris Sawyer's Locomotion'|'Chris Sawyer's Locomotion™'|
+|'Elmarion: Dragon princess'|'Elmarion: Dragon's Princess'|
 |'MAGICKA: PECULIAR GADGETS ITEM PACK DLC '|'Magicka: Peculiar Gadgets Item Pack'|
 |'MAGICKA: MEGA VILLAIN ROBES DLC'|'Magicka: Mega Villain Robes'|
 |'DuckTales Remastered'|'DuckTales: Remastered'|
 |'Redeemer'|'Redeemer: Enhanced Edition'|
 |'Odyssey - The Invention of Science'|'Odyssey - The Story of Science'|
+|'SYNTHETIK'|'SYNTHETIK: Legion Rising'|
 |'Thief of Thieves: Season One'|'Thief of Thieves'|
