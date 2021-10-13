@@ -94,10 +94,10 @@ function onPageLoad_enteredGiveaways() {
                     let giveawayHeader = giveawayHeaders.snapshotItem(i);
                     let appNameElement = document.evaluate(appNameHeaderXpath, giveawayHeader, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
                     let fullAppName = appNameElement.singleNodeValue.innerHTML;
-                    let appName = appNameRegex.exec(fullAppName)[1];
+                    let appName = appNameRegex.exec(fullAppName)[1].trim();
 
                     // if appID is on watchlist -> highlight
-                    if (sg_watchlist.some(entry => entry.appName === appName)) {
+                    if (sg_watchlist.some(entry => entry.appName.trim() === appName)) {
                         applyHighlight(giveawayHeader, true);
                     }
                 }
